@@ -1,3 +1,3 @@
 ﻿$(document).ready(function(){
-	snctWattGraph.make();
+	snctWattGraph.generate();
 });
