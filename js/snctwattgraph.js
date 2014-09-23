@@ -1,77 +1,40 @@
 snctWattGraph = {
-	make: function() {
+	generate: function() {
 		var url = "http://hirose.sendai-nct.ac.jp/~sue/wattmon/5min.csv";
-		var dataTranslator = text2dataset;
-		var drawer = drawWattGraph;
-		constructWattGraph(url, dataTranslator, drawer);
-
-	},
-	reload: function() {
-		
-	} 
+		$.get(url)
+		.done(function(res) {
+			var csv = getCsvString(res);
+			console.log(csv);
+			var data = extractWattData(csv);
+			drawWattGraph(data);
+		})
+	}
 };
 
-// function getCsvFromUrl(url) {
-// 	var csv = undefined;
+// getCscString: 日付 時間, #no#, wattをセットとしたテキストを返す
+// "2014/Sep/23 06:00:01, #0#, 107 2014/Sep/23 06:05:01, #1#, 103"
+function getCsvString (res) {// 
+	// ここを何とかすべし
+	return $.parseHTML(res.results[0])[5].textContent;
+}
 
-// 	$.ajax({
-// 		url: url,
-// 		type: "GET",
-// 		chache: false,
-// 		success: function(res) {
-// 			var content = $(res.responseText).text();
-// 			csv = trim(content);
-// 		}
-// 	});
-
-// 	return csv;
-// }
-
-
-function constructWattGraph(url, dataTranslator, drawer) {
-	$.ajax({
-		url: url,
-		type:"GET",
-		chache: false,
-		success: function(res){
-			var content = $(res.responseText).text();
-			var dataset = dataTranslator(content);
-			drawer(dataset);
-		}
-	});
-};
-
-
-function text2dataset(text){
-	/*
-	データ
-	謎空白 y/m/d h:m:s, #n#, value y/m/d.... LFLF
-	こういう変に空白を混ぜやがったデータを整形してdatasetにする
-	*/
-
-	// 先頭末尾のスペースとLF文字を削除
-	var lf = String.fromCharCode(10);
-	var trimedText = text.replace(/^(\s|lf)+|(\s|lf)+$/g, "");
+function extractWattData(csv) {
 	// カンマ,スペースで分割　["y/m/d", "h:m:s", "#n#", "value", ...]
-	textList = trimedText.split(/\s*\,\s*|\s/);
+	textList = csv.split(/\s*\,\s*|\s/);
 	// 時刻の部分だけ取り出す　["h:m:s", "h:m:s", ...]
 	timeList = _.filter(textList, function(d, i) { return i % 4 == 1});
 	// watt値のところだけ取り出す　[value0, value1, ...]
 	wattList = _.map(_.filter(textList, function(d, i) { return i % 4 == 3}), 
 		function(d) { return parseInt(d)});
-	// 時刻とwattのリストをZip [["h:m:s", value0], ["h:m:s", value1], ...]
-	timeWattList = _.zip(timeList, wattList);
-	// make_graphが読める形式に変換　[{no: 0, time: "h:m:s", watt: value0}, ...]
-	dataset = _.map(timeWattList, function(d, i) { 
-		return {no: i, time: d[0], watt: _.isNumber(d[1]) ? d[1] : 0 };
-	});
-	return dataset;
+
+	return { time: timeList, watt: wattList };
 }
 
-function drawWattGraph(dataset){
-	wattList = _.map(dataset, function(d) { return d.watt })
-	timeList = _.map(dataset, function(d) { return d.time })
-	var grach_data = {
+
+function drawWattGraph(graph_data) {
+	wattList = graph_data.watt;
+	timeList = graph_data.time;
+	var graph_data = {
     bindto: '#chart',
 		size: {
 	    //height: 450,
@@ -99,6 +62,5 @@ function drawWattGraph(dataset){
     	}
     }
 	}
-	var chart = c3.generate(grach_data);
-
+	var chart = c3.generate(graph_data);
 }
