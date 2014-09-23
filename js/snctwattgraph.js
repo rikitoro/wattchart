@@ -1,37 +1,24 @@
 snctWattGraph = {
 	generate: function() {
 		var url = "http://hirose.sendai-nct.ac.jp/~sue/wattmon/5min.csv";
-		var csv = getCsvFromUrl(url);
-		var graph_data = extractWattData(csv);
-		drawWattGraph(graph_data);
-	},
+		$.get(url)
+		.done(function(res) {
+			var csv = getCsvString(res);
+			console.log(csv);
+			var data = extractWattData(csv);
+			drawWattGraph(data);
+		})
+	}
 };
 
-function getCsvFromUrl(url) {
-	var csv;// = undefined;
-	$.ajax({
-		url: url,
-		type: "GET",
-		async: false,
-		success: function(res) {
-			var content = $(res.responseText).text();
-			csv = trim(content);
-		},
-	});
-	console.log(csv);
-	return csv;
-}
-
-function trim (csv) {
-	// 先頭末尾のスペースとLF文字を削除
-	var lf = String.fromCharCode(10);
-	var trimedText = csv.replace(/^(\s|lf)+|(\s|lf)+$/g, "");
-	return trimedText;
-
+// getCscString: 日付 時間, #no#, wattをセットとしたテキストを返す
+// "2014/Sep/23 06:00:01, #0#, 107 2014/Sep/23 06:05:01, #1#, 103"
+function getCsvString (res) {// 
+	// ここを何とかすべし
+	return $.parseHTML(res.results[0])[5].textContent;
 }
 
 function extractWattData(csv) {
-	console.log(csv);
 	// カンマ,スペースで分割　["y/m/d", "h:m:s", "#n#", "value", ...]
 	textList = csv.split(/\s*\,\s*|\s/);
 	// 時刻の部分だけ取り出す　["h:m:s", "h:m:s", ...]
@@ -47,7 +34,7 @@ function extractWattData(csv) {
 function drawWattGraph(graph_data) {
 	wattList = graph_data.watt;
 	timeList = graph_data.time;
-	var grach_data = {
+	var graph_data = {
     bindto: '#chart',
 		size: {
 	    //height: 450,
@@ -75,6 +62,5 @@ function drawWattGraph(graph_data) {
     	}
     }
 	}
-	var chart = c3.generate(grach_data);
-
+	var chart = c3.generate(graph_data);
 }
